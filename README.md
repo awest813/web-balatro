@@ -8,7 +8,7 @@ This project does not need to be built, so installation is as simple as using `g
 
 ## Usage
 
-Open index.html, either through a static web server, or as a file: url, provide the Balatro.exe file, name it 'vanilla', and click 'Build'. Once it finishes, scroll down and click 'Load' by the vanilla entry in the 'Versions' table. Click 'Start Game' and Balatro will launch, fully in the browser. 
+Open index.html, either through a static web server, or as a file: url, provide the Balatro.exe file, name it 'vanilla', and click 'Build'. Once it finishes, click 'Load' by the vanilla entry in the 'Versions' table just below. Click 'Start Game' and Balatro will launch, fully in the browser. 
 
 If the 'index.html' file fails when using the file: url, use a static web server such as python's http.server module.
 ```sh

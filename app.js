@@ -60,9 +60,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 
-    add_mods_button.onclick = addModDir
+    add_mods_button.onclick = guarded(addModDir)
     clear_mods_button.onclick = clearMods
-    use_lovely_dump_button.onclick = useLovelyDump
+    use_lovely_dump_button.onclick = guarded(useLovelyDump)
+    renderModsList()
+
+    if (!window.showDirectoryPicker) {
+        add_mods_button.disabled = true
+        use_lovely_dump_button.disabled = true
+        $("modSupportHint").hidden = false
+    }
 
     function checkBuildButton() {
         if (file_input.files.length > 0 && load_exe_radio.checked) {
@@ -80,6 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     build_button.addEventListener("click", async function() {
         try {
+            progress_bar.classList.remove("hidden")
             build_button.disabled = true
             file_input.parentElement.classList.add("disabled")
             file_input.disabled = true;
@@ -94,28 +102,28 @@ document.addEventListener("DOMContentLoaded", async () => {
                 file = await loadCachedGame()
             }
 
-            let name = version_name_input.value
+            // An empty name falls back to the placeholder ("vanilla", or "Modded" when mods are added).
+            let name = (version_name_input.value || version_name_input.placeholder).trim()
 
             if (!name) {
                 showError("No name provided for the build. Aborting.")
                 return
             }
 
-            if (Object.keys(mods).length > 0) {
-                if (name == "vanilla") {
-                    if (!confirm("DANGEROUS! Overwrite the 'vannila' build? This can break subsequent builds using the cached vanilla, but this will also let you create default mods for new versions.")) {
-                        return
-                    }
+            const has_mods = Object.keys(mods).length > 0
+            const exists = (await listCachedVersions()).indexOf(name) != -1
+
+            if (has_mods && name == "vanilla") {
+                if (!confirm("DANGEROUS! Overwrite the 'vanilla' build? This can break subsequent builds using the cached vanilla, but this will also let you create default mods for new versions.")) {
+                    return
                 }
-            } else {
-                if (!name) {
-                    version_name_input.value = "vanilla"
-                    name = "vanilla"
+            } else if (exists) {
+                if (!confirm("A version named '" + name + "' already exists. Overwrite it? Its save data is kept.")) {
+                    return
                 }
-                if (name != "vanilla") {
-                    if (!confirm("Create a new version without mods, which is not called vanilla? This is redundant unless you want more save slots.")) {
-                        return
-                    }
+            } else if (!has_mods && name != "vanilla") {
+                if (!confirm("Create a new version without mods, which is not called vanilla? This is redundant unless you want more save slots.")) {
+                    return
                 }
             }
 
@@ -129,8 +137,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             progress_bar.value = "100"
             status_text.innerText = "Done"
 
-            build_button.classList.remove("hidden")
-
             setTimeout(() => {
                 progress_bar.value = "0"
             }, 1000)
@@ -138,11 +144,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderVersionList()
             
         } catch (err) {
-            progress_bar.classList.add("hidden")
+            progress_bar.value = 0
+            status_text.innerText = "Build failed"
             showError(err instanceof Error ? err.message : String(err))
             console.error(err)
         } finally {
-            build_button.disabled = false
+            checkBuildButton()
             file_input.parentElement.classList.remove("disabled")
             file_input.disabled = false;
             version_name_input.disabled = false;
@@ -170,6 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await renderVersionList()
         status_text.innerText = "Ready"
     } catch (err) {
+        status_text.innerText = "Could not read cached versions"
         showError(err.message)
     }
 })

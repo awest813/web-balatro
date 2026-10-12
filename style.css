@@ -9,12 +9,27 @@
   --border: #333;
   --danger: #e74c3c;
   --card: #1f1f1f;
+  --danger-hover: #ff6b5a;
+  color-scheme: dark;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
   margin: 0;
   padding: 0;
 }
@@ -27,6 +42,43 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--accent);
+  line-height: 1.2;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--muted);
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: var(--hover-accent);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: normal;
+  margin: 0.25rem 0 0.75rem;
+}
+
+h3 .hint {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 section {
@@ -38,15 +90,38 @@ section {
 }
 
 .options {
-    margin: auto;
-    width: fit-content
+  margin: auto;
+  width: fit-content;
+  max-width: 100%;
 }
 
-.options label {
-  margin-right: 1rem;
+.option-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  margin: 0.4rem 0;
 }
 
-input[type="text"] {
+.option-row .hint {
+  margin: 0;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.loaded {
+  margin: 0.25rem 0;
+}
+
+#loadedName {
+  color: var(--accent);
+}
+
+input[type="text"], input#makeName {
   background: var(--bg);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -67,8 +142,33 @@ button {
 }
 
 button[disabled] {
-  background: var(--disabled-accent);
+  background: #2a3332;
+  color: #7d8a89;
   cursor: not-allowed;
+}
+
+button.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+button.danger:not([disabled]):hover {
+  background: var(--danger-hover);
+}
+
+button.danger:not([disabled]):active {
+  background: #b83a2d;
+}
+
+button.danger[disabled] {
+  background: #3a2a28;
+  color: #8a7a78;
+}
+
+body.busy button {
+  cursor: progress;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 button.hidden {
@@ -100,10 +200,52 @@ progress::-webkit-progress-value {
   border-radius: 4px;
 }
 
+progress::-moz-progress-bar {
+  background-color: var(--accent);
+  border-radius: 4px;
+}
+
+progress {
+  background-color: #333;
+  border: none;
+  border-radius: 4px;
+}
+
+#status {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
   background: var(--card);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table td:last-child {
+  white-space: nowrap;
+  width: 1%;
+}
+
+table td:first-child {
+  overflow-wrap: anywhere;
+}
+
+tr.loaded-row td {
+  background: #1b2a29;
+}
+
+tr.loaded-row td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
 }
 
 table th, table td {
@@ -139,6 +281,9 @@ table th {
   border-radius: 12px;
   max-width: 400px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   text-align: center;
   color: var(--fg);
   position: relative;
@@ -156,16 +301,51 @@ table th {
 .close {
   position: absolute;
   top: 0.5rem;
-  right: 1rem;
+  right: 0.5rem;
+  margin: 0;
+  padding: 0.1rem 0.6rem;
   font-size: 1.5rem;
+  line-height: 1.2;
+  background: transparent;
   color: var(--danger);
-  cursor: pointer;
+}
+
+.close:not([disabled]):hover {
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.close:not([disabled]):active {
+  background: rgba(231, 76, 60, 0.3);
 }
 
 .addMods {
-  width: fit-content;
+  max-width: 100%;
   margin: auto;
   text-align: center;
+}
+
+.mod-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+
+.mod-item label {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.mod-item button {
+  margin: 0;
+  padding: 0.1rem 0.5rem;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.mod-item button:not([disabled]):hover {
+  background: rgba(231, 76, 60, 0.15);
 }
 
 .center {
@@ -186,23 +366,59 @@ label {
   text-align: left;
 }
 
-#loadedName {
-  display: inline;
-}
-
 label[for=makeName] {
   color: var(--accent);
 }
 
 input#makeName {
-  width: 80%;
+  width: min(24rem, 80%);
   background-color: var(--border);
-  color: white
+  color: white;
 }
 
 .makeName {
-  margin: auto;
+  margin: 1rem auto;
   text-align: center;
+}
+
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+
+  section {
+    padding: 0.75rem;
+  }
+
+  #parseBtn {
+    height: 3.5em;
+    width: 100%;
+  }
+
+  .center {
+    width: auto;
+  }
+
+  table th, table td {
+    padding: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
 }
 
 .game {
@@ -219,4 +435,8 @@ canvas#canvas {
   left: 0;
   width: 100%;
   height: 100%;
+}
+#mod-list > .hint {
+  display: block;
+  text-align: center;
 }

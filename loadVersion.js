@@ -46,6 +46,13 @@ async function loadVersion(versionId) {
         save_download.disabled = true;
         save_upload.disabled = true;
         save_delete.disabled = true;
+
+        run_button.onclick = download_cache_button.onclick = make_portable_button.onclick = null
+        save_download.onclick = save_upload.onclick = save_delete.onclick = null
+        loaded_game_id = null;
+        $("playerHint").hidden = false;
+        highlightLoadedVersion()
+        return
     }
 
     /** @type {string[]} */
@@ -56,65 +63,69 @@ async function loadVersion(versionId) {
     loaded_game_id = versionId;
 
     loaded_version_name.innerText = loaded_game_id
+    $("playerHint").hidden = true;
+    highlightLoadedVersion()
 
     run_button.disabled = false;
 
-    run_button.onclick = function() {
-        runVersion(loaded_game_id)
-    }
+    run_button.onclick = guarded(async function() {
+        await runVersion(loaded_game_id)
+    })
 
     download_cache_button.disabled = false;
 
-    download_cache_button.onclick = async function() {
+    download_cache_button.onclick = guarded(async function() {
         status_text.innerText = "Loading Game"
         progress_bar.value = 0;
 
         const game = await loadCachedGame(loaded_game_id)
 
+        if (!game) throw new Error("Version '" + loaded_game_id + "' is missing from the cache.")
+
         status_text.innerText = "Saving"
         progress_bar.value = 50;
 
         saveAs(game, "balatro_" + loaded_game_id + ".zip")
-
-        status_text.innerText = "Ready"
-        progress_bar.value = 0;
-    }
+    })
 
     make_portable_button.disabled = false;
 
-    make_portable_button.onclick = async function() {
+    make_portable_button.onclick = guarded(async function() {
         const game = await loadCachedGame(loaded_game_id)
+        if (!game) throw new Error("Version '" + loaded_game_id + "' is missing from the cache.")
 
         status_text.innerText = "Fetching Template"
         progress_bar.value = 0;
-        var s = document.createElement('script');
-        s.type = 'text/javascript';
-        s.src = "single_file.js"; // THICC FILE
-        s.async = true;
-        s.onload = async function () {
-            status_text.innerText = "Filling Template"
-            progress_bar.value = 30;
-            const game_uri = await getDataURIFromBlob(game)
+        if (!window.templates) {
+            await new Promise((resolve, reject) => {
+                var s = document.createElement('script');
+                s.type = 'text/javascript';
+                s.src = "single_file.js"; // THICC FILE
+                s.async = true;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error("Could not load the portable player template (single_file.js)."));
+                document.body.appendChild(s);
+            })
+        }
 
-            const zip = new JSZip()
-            for (const file_name of Object.keys(window.templates)) {
-                progress_bar.value += 20;
-                zip.file(file_name, window.templates[file_name].replace("%%DATAURI%%", game_uri).replace("%%VERSION_NAME%%", loaded_game_id))
-            }
-            status_text.innerText = "Zipping"
-            progress_bar.value = 95;
-            saveAs(await zip.generateAsync({type: "blob"}), "balatro.zip")
-            
-            status_text.innerText = "Ready"
-            progress_bar.value = 0;
-        };
-        document.body.appendChild(s);
-    }
+        status_text.innerText = "Filling Template"
+        progress_bar.value = 30;
+        const game_uri = await getDataURIFromBlob(game)
+
+        const zip = new JSZip()
+        for (const file_name of Object.keys(window.templates)) {
+            progress_bar.value += 20;
+            zip.file(file_name, window.templates[file_name].replace("%%DATAURI%%", game_uri).replace("%%VERSION_NAME%%", loaded_game_id))
+        }
+        status_text.innerText = "Zipping"
+        progress_bar.value = 95;
+        saveAs(await zip.generateAsync({type: "blob"}), "balatro.zip")
+    })
 
 
     save_download.disabled = false;
 
-    save_download.onclick = async function() {
+    save_download.onclick = guarded(async function() {
         const save_data_id = "Balatro_" + loaded_game_id + "_/home/web_user/love"
 
         const zip = new JSZip();
@@ -181,41 +192,21 @@ async function loadVersion(versionId) {
         progress_bar.value = 90;
 
         saveAs(zipBlob, `balatro_${loaded_game_id}_save_data.zip`)
-
-        status_text.innerText = "Ready"
-        progress_bar.value = 0;
-    }
+    })
 
     save_upload.disabled = false;
 
-    save_upload.onclick = async function() {
+    save_upload.onclick = guarded(async function() {
 
-        status_text.innerText = "Reqesting Save Data"
+        status_text.innerText = "Waiting for save file"
         progress_bar.value = 0;
 
-        /** @type {FileSystemFileHandle[]} */
-        const fileHandles = await showOpenFilePicker({
-            id: "balatro_save",
-            types: [
-                {
-                    description: "Zipped Archives",
-                    accept: {
-                        "application/zip": [".zip"]
-                    }
-                }
-            ],
-            excludeAcceptAllOption: true,
-            multiple: false,
-        })
+        const fileBlob = await pickZipFile()
 
-        if (fileHandles.length == 0) {
-            // Silently ignore if user cancels
+        if (!fileBlob) {
+            // User cancelled the picker.
             return;
         }
-
-        const fileHandle = fileHandles[0]
-
-        const fileBlob = await fileHandle.getFile()
 
         status_text.innerText = "Extracting Zip"
         progress_bar.value = 0;
@@ -317,23 +308,13 @@ async function loadVersion(versionId) {
         progress_bar.value = 100;
 
         db.close()
-
-        status_text.innerText = "Ready"
-        progress_bar.value = 0;
-    }
+    })
 
     save_delete.disabled = false;
 
-    save_delete.onclick = async function() {
+    save_delete.onclick = guarded(async function() {
 
-        status_text.innerText = "Aquiring confirmation"
-        progress_bar.value = 0;
-
-        await Promise.resolve()
-
-        if (!confirm("Delete ALL save data for version '" + loaded_game_id + "'?")) {
-            status_text.innerText = "Ready"
-            progress_bar.value = 0;
+        if (!confirm("Delete ALL save data for version '" + loaded_game_id + "'? This cannot be undone.")) {
             return
         }
 
@@ -372,7 +353,5 @@ async function loadVersion(versionId) {
             cursorRequest.onerror = () => reject(cursorRequest.error);
         });
 
-        status_text.innerText = "Ready"
-        progress_bar.value = 0;
-    }
+    })
 }
