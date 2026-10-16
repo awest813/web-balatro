@@ -243,9 +243,11 @@ tr.loaded-row td:first-child {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-.empty {
+table td.empty {
   color: var(--muted);
   text-align: center;
+  white-space: normal;
+  width: auto;
 }
 
 table th, table td {
@@ -404,6 +406,7 @@ input#makeName {
   #parseBtn {
     height: 3.5em;
     width: 100%;
+    margin: 0.25rem 0;
   }
 
   .center {
@@ -439,4 +442,58 @@ canvas#canvas {
 #mod-list > .hint {
   display: block;
   text-align: center;
+}
+
+.steps {
+  max-width: 34rem;
+  margin: 0 auto 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.steps li {
+  margin: 0.2rem 0;
+}
+
+.center-text {
+  text-align: center;
+}
+
+.notice {
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  text-align: center;
+}
+
+footer {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+  padding-bottom: 1rem;
+}
+
+.modal.info .modal-content {
+  border-color: var(--accent);
+}
+
+.modal.info .modal-content h2,
+.modal.info .close {
+  color: var(--accent);
+}
+
+.modal.info .close:not([disabled]):hover {
+  background: rgba(102, 252, 241, 0.15);
+}
+
+.modal.info .close:not([disabled]):active {
+  background: rgba(102, 252, 241, 0.3);
+}
+
+code {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 0.25rem;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
 }

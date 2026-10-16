@@ -3,43 +3,32 @@ function $(id) {
 }
 
 /**
- * 
- * @param {Blob | File} blob 
- * @returns {Promise<ArrayBuffer>}
- */
-function getArrayBufferFromBlob(blob) {
-    let resolve, reject, promise = new Promise((res, rej) => {resolve = res; reject = rej});
-    const reader = new FileReader();
-    reader.onload = function() {
-        resolve(reader.result)
-    };
-    reader.onerror = function() {
-        reject()
-    }
-    reader.readAsArrayBuffer(blob);
-    return promise;
-}
-
-/**
- * 
- * @param {Blob | File} blob 
+ *
+ * @param {Blob | File} blob
  * @returns {Promise<String>}
  */
 function getDataURIFromBlob(blob) {
-    let resolve, reject, promise = new Promise((res, rej) => {resolve = res; reject = rej});
-    const reader = new FileReader();
-    reader.onload = function() {
-        resolve(reader.result)
-    };
-    reader.onerror = function() {
-        reject()
-    }
-    reader.readAsDataURL(blob);
-    return promise;
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error("Could not read the file."));
+        reader.readAsDataURL(blob);
+    });
 }
 
-let cached_games = []
-
+/**
+ * Ask the browser not to evict our IndexedDB data (built games and saves)
+ * when the device is low on storage. Best-effort; some browsers ignore it.
+ */
+async function requestPersistentStorage() {
+    try {
+        if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) {
+            await navigator.storage.persist()
+        }
+    } catch (err) {
+        console.warn("Persistent storage request failed", err)
+    }
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
     const file_input = $("exeInput")
@@ -54,11 +43,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const version_name_input = $("makeName")
 
     const build_button = $("parseBtn")
-
-    const progress_bar = $("progressBar")
-    const status_text = $("status")
-
-
 
     add_mods_button.onclick = guarded(addModDir)
     clear_mods_button.onclick = clearMods
@@ -81,40 +65,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    file_input.onchange = checkBuildButton
+    file_input.onchange = function() {
+        // Choosing a file implies building from it.
+        if (file_input.files.length > 0) load_exe_radio.checked = true
+        checkBuildButton()
+    }
     load_exe_radio.onchange = checkBuildButton
     load_vanilla_radio.onchange = checkBuildButton
 
-    build_button.addEventListener("click", async function() {
+    build_button.onclick = guarded(async function() {
+        build_button.disabled = true
+        file_input.disabled = true;
+        version_name_input.disabled = true;
+
         try {
-            progress_bar.classList.remove("hidden")
-            build_button.disabled = true
-            file_input.parentElement.classList.add("disabled")
-            file_input.disabled = true;
-            version_name_input.disabled = true;
-            
             let file;
             if (load_exe_radio.checked) {
                 file = file_input.files[0]
-                if (!file) throw new Error("No file inputted")
-                const name = file.name
+                if (!file) throw new Error("Choose your Balatro.exe or .love file first.")
             } else {
                 file = await loadCachedGame()
+                if (!file) throw new Error("The 'vanilla' version is missing. Build it from Balatro.exe first.")
             }
 
             // An empty name falls back to the placeholder ("vanilla", or "Modded" when mods are added).
-            let name = (version_name_input.value || version_name_input.placeholder).trim()
+            const name = (version_name_input.value || version_name_input.placeholder).trim()
 
             if (!name) {
-                showError("No name provided for the build. Aborting.")
-                return
+                throw new Error("No name provided for the build.")
             }
 
             const has_mods = Object.keys(mods).length > 0
             const exists = (await listCachedVersions()).indexOf(name) != -1
 
             if (has_mods && name == "vanilla") {
-                if (!confirm("DANGEROUS! Overwrite the 'vanilla' build? This can break subsequent builds using the cached vanilla, but this will also let you create default mods for new versions.")) {
+                if (!confirm("Overwrite the 'vanilla' build with a modded one? \"Use Vanilla\" builds will then include these mods too.")) {
                     return
                 }
             } else if (exists) {
@@ -122,62 +107,41 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return
                 }
             } else if (!has_mods && name != "vanilla") {
-                if (!confirm("Create a new version without mods, which is not called vanilla? This is redundant unless you want more save slots.")) {
+                if (!confirm("Create an unmodded version called '" + name + "'? This is only useful as an extra save slot. Use the name 'vanilla' to enable \"Use Vanilla\" for modded builds.")) {
                     return
                 }
             }
 
-            game = await buildFromSource(file, mods);
+            const game = await buildFromSource(file, mods);
 
-            progress_bar.value = "95"
-            status_text.innerText = "Saving to Cache"
-
+            setStatus("Saving to cache", 95)
             await saveGameToCache(game, name);
+            await requestPersistentStorage()
 
-            progress_bar.value = "100"
-            status_text.innerText = "Done"
+            await renderVersionList()
+            await loadVersion(name)
 
-            setTimeout(() => {
-                progress_bar.value = "0"
-            }, 1000)
-
-            renderVersionList()
-            
-        } catch (err) {
-            progress_bar.value = 0
-            status_text.innerText = "Build failed"
-            showError(err instanceof Error ? err.message : String(err))
-            console.error(err)
+            return "Built '" + name + "'. Click Start Game to play."
         } finally {
-            checkBuildButton()
-            file_input.parentElement.classList.remove("disabled")
             file_input.disabled = false;
             version_name_input.disabled = false;
+            checkBuildButton()
         }
-    });
+    })
 
-    // build_button.addEventListener("click", function() {
-    //     var s = document.createElement('script');
-    //     s.type = 'text/javascript';
-    //     s.src = "single_file.js"; // THICC FILE
-    //     s.async = true;
-    //     s.onload = async function () {
-    //         const game_uri = await getDataURIFromBlob(game)
-
-    //         const zip = new JSZip()
-    //         for (const file_name of Object.keys(window.templates)) {
-    //             zip.file(file_name, window.templates[file_name].replace("%%DATAURI%%", game_uri))
-    //         }
-    //         saveAs(await zip.generateAsync({type: "blob"}), "balatro.zip")
-    //     };
-    //     document.body.appendChild(s);
-    // })
-    
     try {
+        const versions = await listCachedVersions()
         await renderVersionList()
-        status_text.innerText = "Ready"
+
+        // Returning visitors: pre-load the last used version (or the only one).
+        const remembered = getRememberedVersion()
+        const initial = versions.indexOf(remembered) != -1 ? remembered : versions.length == 1 ? versions[0] : null
+        if (initial) await loadVersion(initial)
+
+        setStatus(versions.length == 0 ? "Ready. Choose your Balatro.exe to get started." : "Ready")
     } catch (err) {
-        status_text.innerText = "Could not read cached versions"
-        showError(err.message)
+        console.error(err)
+        setStatus("Could not read cached versions")
+        showError(err instanceof Error ? err.message : String(err))
     }
 })

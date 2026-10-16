@@ -29,6 +29,7 @@ async function runVersion(version) {
 
     document.body.innerHTML = ""
     document.body.classList.remove("busy")
+    document.title = "Balatro (" + version + ")"
 
     // Shown until the game paints over it (the canvas is transparent until then).
     const loading = document.createElement("p")
@@ -46,6 +47,11 @@ async function runVersion(version) {
     Module.canvas = canvas
     Module.printErr = console.error
     Module.arguments = ["game.love"] // 1st argument is the path of the package
+    Module.onAbort = function (what) {
+        console.error("Game aborted:", what)
+        canvas.remove()
+        loading.textContent = "The game crashed. Reload the page to try again; your last autosave is kept."
+    }
     Module.preRun = [
         function () { // Load game.love into the fs
             Module.addRunDependency("fp game.love");
@@ -61,7 +67,12 @@ async function runVersion(version) {
     s.src = "run/11.5/love.min.js";
     s.async = true;
     s.onload = function () {
-        Love(Module);
+        Promise.resolve(Love(Module)).catch(function (err) {
+            console.error(err)
+            if (!canvas.isConnected) return // Already reported by onAbort.
+            canvas.remove()
+            loading.textContent = "The game failed to start: " + (err && err.message ? err.message : err)
+        })
     };
     s.onerror = function () {
         loading.textContent = "Could not load the game engine. Reload the page and try again."

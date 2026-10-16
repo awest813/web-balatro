@@ -6,7 +6,12 @@
     <title>Balatro on the Web</title>
     <link rel="stylesheet" href="style.css" />
     <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Run Balatro in your browser from your own copy of the game." />
+    <meta name="description" content="Play Balatro in your browser using your own copy of the game. Your game files never leave your device." />
+    <meta name="theme-color" content="#111111" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Balatro on the Web" />
+    <meta property="og:description" content="Play Balatro in your browser using your own copy of the game. Your game files never leave your device." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='2' width='20' height='28' rx='3' fill='%23111' stroke='%2366fcf1' stroke-width='2'/%3E%3Cpath d='M16 9l5 7-5 7-5-7z' fill='%23e74c3c'/%3E%3C/svg%3E" />
     <script src="ui.js"></script>
     <script src="lib/data.js"></script>
     <script src="lib/FileSaver.min.js"></script>
@@ -14,6 +19,7 @@
     <script src="lib/toml.js"></script>
     <script src="renderVersionList.js"></script>
     <script src="runVersion.js"></script>
+    <script src="saves.js"></script>
     <script src="loadVersion.js"></script>
     <script src="mods.js"></script>
     <script src="patches.js"></script>
@@ -26,6 +32,13 @@
       <header>
         <h1>Balatro</h1>
         <p class="subtitle">Play Balatro in your browser, using your own copy of the game.</p>
+        <ol class="steps">
+          <li>Choose <strong>Balatro.exe</strong> from your install folder (<a href="whereisexe.html" target="_blank" rel="noopener">where is it?</a>).</li>
+          <li>Click <strong>Build</strong>. This takes a few seconds and only has to be done once.</li>
+          <li>Click <strong>Start Game</strong>.</li>
+        </ol>
+        <p class="hint center-text">Everything runs locally: your game files and saves stay in this browser and are never uploaded.</p>
+        <noscript><p class="notice">This site needs JavaScript to run.</p></noscript>
       </header>
 
       <section aria-labelledby="newVersionHeading">
@@ -96,13 +109,21 @@
 
       <section aria-labelledby="saveHeading">
         <h2 id="saveHeading">Save Data</h2>
-        <p class="hint">Applies to the loaded version. Uploading replaces its current save.</p>
+        <p class="hint">Applies to the loaded version. Saves are kept in this browser, so download a backup before clearing site data. Upload accepts a zip from Download, or a zip of your desktop save folder (<a href="whereisexe.html#saves" target="_blank" rel="noopener">where is it?</a>).</p>
         <div class="button-row">
           <button disabled id="save-download">Download</button>
           <button disabled id="save-upload">Upload</button>
           <button disabled id="save-delete" class="danger">Delete</button>
         </div>
       </section>
+
+      <footer>
+        <p>
+          Not affiliated with LocalThunk or Playstack. You need to <a href="https://www.playbalatro.com/" rel="noopener">own Balatro</a> to play.
+          Runs on <a href="https://github.com/2dengine/love.js" rel="noopener">love.js</a>.
+          <a href="https://github.com/awest813/web-balatro" rel="noopener">Source &amp; issues</a>
+        </p>
+      </footer>
 
       <!-- Error Modal -->
       <div id="errorModal" class="modal hidden">

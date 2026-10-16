@@ -70,7 +70,7 @@ async function renderVersionList() {
         delButton.className = "danger"
         delButton.setAttribute("aria-label", "Delete " + version)
         delButton.onclick = guarded(async function() {
-            if (confirm("Delete '" + version + "'?")) {
+            if (confirm("Delete the version '" + version + "'? Its save data is kept and will come back if you build a version with the same name. Use Save Data → Delete to remove it.")) {
                 await deleteCachedGame(version)
                 if (version === loaded_game_id) {
                     await loadVersion(null)

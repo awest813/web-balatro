@@ -16,12 +16,23 @@ function setStatus(text, progress) {
 let busy = false
 let lastFocused = null
 
-function showError(message) {
+function showDialog(title, message, kind) {
     const modal = document.getElementById("errorModal")
+    document.getElementById("errorTitle").textContent = title
     document.getElementById("errorMessage").textContent = message
-    lastFocused = document.activeElement
+    modal.classList.toggle("info", kind === "info")
+    if (modal.classList.contains("hidden")) lastFocused = document.activeElement
     modal.classList.remove("hidden")
     document.getElementById("closeModal").focus()
+}
+
+function showError(message) {
+    showDialog("Error", message, "error")
+}
+
+/** Show a non-error notice in the same dialog. */
+function showMessage(title, message) {
+    showDialog(title, message, "info")
 }
 
 function hideError() {
@@ -52,7 +63,8 @@ function isAbort(err) {
  *  - marks the page busy (see `body.busy` in style.css),
  *  - silently ignores picker cancellation,
  *  - reports any other failure in the error dialog,
- *  - always resets the progress bar and status line afterwards.
+ *  - always resets the progress bar and status line afterwards. If `fn`
+ *    resolves to a string, it is shown as the final status instead of "Ready".
  *
  * @param {Function} fn
  */
@@ -61,9 +73,11 @@ function guarded(fn) {
         if (busy) return
         busy = true
         let failed = false
+        let result
         document.body.classList.add("busy")
         try {
-            return await fn.apply(this, args)
+            result = await fn.apply(this, args)
+            return result
         } catch (err) {
             if (!isAbort(err)) {
                 failed = true
@@ -74,7 +88,7 @@ function guarded(fn) {
         } finally {
             busy = false
             document.body.classList.remove("busy")
-            if (!failed) setStatus("Ready")
+            if (!failed) setStatus(typeof result === "string" ? result : "Ready")
             setStatus(undefined, 0)
         }
     }

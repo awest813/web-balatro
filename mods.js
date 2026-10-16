@@ -18,20 +18,24 @@ async function isMod(dir) {
 }
 
 /**
+ * @param {FileSystemDirectoryHandle} dir - A mod's root folder.
+ * @returns {Promise<boolean>} Whether the mod declares itself web compatible.
+ */
+async function isWebCompatible(dir) {
+    try {
+        await dir.getFileHandle("webcompatible")
+        return true
+    } catch {
+        return false
+    }
+}
+
+/**
  * 
  * @param {FileSystemDirectoryHandle} dir
  * @returns {Promise<Object>}
  */
-async function directoryToObject(dir, isRoot=false, showCompatibleWarning=true) {
-    if (isRoot) {
-        try {
-            await dir.getFileHandle("webcompatible")
-        } catch (err) {
-            if (showCompatibleWarning) {
-                alert("Mod " + dir.name + " may not be web compatible.")
-            }
-        }
-    }
+async function directoryToObject(dir) {
     const object = {}
     for await (const [path, obj] of dir.entries()) {
         if (obj.kind == "directory") {
@@ -52,19 +56,36 @@ async function addModDir() {
         startIn: "downloads"
     });
 
+    // Either a single mod folder, or a folder of mods (like Lovely's Mods folder).
+    const mod_dirs = []
     if (await isMod(dir_picker)) {
-        mods[dir_picker.name] = await directoryToObject(dir_picker, true)
+        mod_dirs.push(dir_picker)
     } else {
-        for await (const [path, obj] of dir_picker.entries()) {
+        for await (const obj of dir_picker.values()) {
+            // Not only Lovely mods: SMODS-only mods are needed when using a Lovely dump.
             if (obj.kind == "directory") {
-                mods[obj.name] = await directoryToObject(obj, true)
+                mod_dirs.push(obj)
             }
         }
     }
-    if (Object.keys(mods).length > 0) {
-        $("makeName").placeholder = "Modded"
+
+    if (mod_dirs.length == 0) {
+        throw new Error("No mods found in '" + dir_picker.name + "'. Pick a mod folder (containing lovely.toml or a lovely folder), or a folder of mod folders.")
     }
+
+    const untested = []
+    for (const dir of mod_dirs) {
+        setStatus("Reading mod " + dir.name)
+        mods[dir.name] = await directoryToObject(dir)
+        if (!await isWebCompatible(dir)) untested.push(dir.name)
+    }
+
+    $("makeName").placeholder = "Modded"
     renderModsList()
+
+    if (untested.length > 0) {
+        showMessage("Mods may not work", "These mods aren't marked as web compatible and may not work: " + untested.join(", ") + ". Mods that need SMODS won't work.")
+    }
 }
 
 function clearMods() {
@@ -133,9 +154,10 @@ async function useLovelyDump() {
         startIn: "downloads"
     });
 
-    mods["Dump from Lovely"] = await directoryToObject(dir_picker, true, false)
-
-    alert("Tick the checkbox next to each mod that was included in the dump.")
+    mods["Dump from Lovely"] = await directoryToObject(dir_picker)
+    $("makeName").placeholder = "Modded"
 
     renderModsList()
+
+    showMessage("Lovely dump added", "Tick the checkbox next to each mod that was included in the dump, so its patches aren't applied twice.")
 }
