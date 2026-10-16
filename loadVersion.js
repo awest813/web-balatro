@@ -140,7 +140,7 @@ async function loadVersion(versionId) {
         setStatus("Reading save data", 20)
         const blob = await exportSave(loaded_game_id)
         if (!blob) {
-            showMessage("No save data yet", "There is no save data for '" + loaded_game_id + "' yet. Start the game and play for a bit first.")
+            showMessage("No save data yet", "There is no save data for '" + loaded_game_id + "' yet. Click Play and play for a bit first.")
             return
         }
         setStatus("Downloading", 90)

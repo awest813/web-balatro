@@ -9,10 +9,10 @@ This site doesn't include Balatro. You give it the `Balatro.exe` (or `.love`) fi
 ## Usage
 
 1. Find `Balatro.exe` in your install folder. In Steam, right click Balatro → *Manage* → *Browse local files*. See [whereisexe.html](whereisexe.html) for macOS and other platforms.
-2. On the site, choose the file, leave the name as `vanilla`, and click **Build**. This only has to be done once; the build is cached in your browser.
-3. Click **Start Game**.
+2. On the site, drop the file onto the page (or click to choose it), leave the name as `vanilla`, and click **Build**. This only has to be done once; the build is cached in your browser.
+3. Click **Play**.
 
-Next time you visit, your last version is already loaded, so you can go straight to **Start Game**.
+Next time you visit, your last version is already loaded, so you can go straight to **Play**.
 
 A recent desktop browser works best. Adding mods needs a Chromium-based browser (Chrome, Edge, Opera, etc.), because it uses the folder picker.
 
@@ -94,5 +94,7 @@ Don't put the portable player on the internet: it contains Balatro's source, and
 [Balatro](https://www.playbalatro.com/) by LocalThunk. This project is not affiliated with LocalThunk or Playstack.
 
 [Lovely](https://github.com/ethangreen-dev/lovely-injector) by Ethan Green
+
+[Pixelify Sans](https://github.com/eifetx/Pixelify-Sans) font by the Pixelify Sans Project Authors, under the [SIL Open Font License](fonts/OFL.txt)
 
 Originally created by [W0W53R](https://github.com/W0W53R/web-balatro).

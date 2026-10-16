@@ -105,7 +105,17 @@ function removeMod(mod_name) {
 function renderModsList() {
     const list = $("mod-list");
     list.innerHTML = "";
-    if (Object.keys(mods).length == 0) {
+
+    const count = Object.keys(mods).length;
+    const badge = $("modCount");
+    if (badge) {
+        badge.hidden = count == 0;
+        badge.textContent = count;
+        badge.setAttribute("aria-label", count + (count == 1 ? " mod" : " mods"));
+    }
+    if (count > 0 && $("modsDetails")) $("modsDetails").open = true;
+
+    if (count == 0) {
         const empty = document.createElement("span");
         empty.className = "hint";
         empty.innerText = "None. The build will be unmodded.";

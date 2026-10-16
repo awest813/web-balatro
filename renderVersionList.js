@@ -4,26 +4,47 @@ function $(id) {
 
 const make = document.createElement.bind(document)
 
+const SUITS = [
+    { symbol: "♠", name: "spades", className: "suit-dark" },
+    { symbol: "♥", name: "hearts", className: "suit-red" },
+    { symbol: "♣", name: "clubs", className: "suit-dark" },
+    { symbol: "♦", name: "diamonds", className: "suit-red" },
+]
+
+/** A stable suit for each version name, purely decorative. */
+function suitFor(name) {
+    let hash = 0
+    for (const ch of name) hash = (hash * 31 + ch.codePointAt(0)) >>> 0
+    return SUITS[hash % SUITS.length]
+}
+
 /** Highlight the row of the currently loaded version (if any). */
 function highlightLoadedVersion() {
-    for (const tr of $("versionsList").children) {
-        const is_loaded = typeof loaded_game_id !== "undefined" && tr.dataset.version === loaded_game_id
-        tr.classList.toggle("loaded-row", is_loaded)
+    for (const item of $("versionsList").children) {
+        if (!item.dataset.version) continue
+        const is_loaded = typeof loaded_game_id !== "undefined" && item.dataset.version === loaded_game_id
+        item.classList.toggle("loaded-row", is_loaded)
+        const state = item.querySelector(".version-state")
+        if (state) state.textContent = is_loaded ? "Loaded" : "Ready to load"
         if (is_loaded) {
-            tr.setAttribute("aria-current", "true")
+            item.setAttribute("aria-current", "true")
         } else {
-            tr.removeAttribute("aria-current")
+            item.removeAttribute("aria-current")
         }
     }
 }
 
 /**
- * Re-render the table of cached versions.
+ * Re-render the list of cached versions.
  */
 async function renderVersionList() {
     const versions = await listCachedVersions()
     const versionsList = $("versionsList")
     versionsList.innerHTML = ""
+
+    // First visit: the page shows only the build panel and the steps.
+    document.body.classList.toggle("no-versions", versions.length == 0)
+
     {
         const load_vanilla_radio = $("loadVanillaRadio")
         const has_vanilla = versions.indexOf("vanilla") != -1
@@ -37,40 +58,52 @@ async function renderVersionList() {
     }
 
     if (versions.length == 0) {
-        const tr = make("tr")
-        const td = make("td")
-        td.colSpan = 2
-        td.className = "empty"
-        td.innerText = "No versions yet. Build one above to get started."
-        tr.appendChild(td)
-        versionsList.appendChild(tr)
+        const li = make("li")
+        li.className = "empty"
+        li.innerText = "No versions yet. Build one to get started."
+        versionsList.appendChild(li)
         return
     }
 
     for (const version of versions) {
-        const tr = make("tr")
-        tr.dataset.version = version
+        const li = make("li")
+        li.dataset.version = version
 
-        const name = make("td")
-        name.innerText = version
-        tr.appendChild(name)
+        const suit = suitFor(version)
+        const card = make("span")
+        card.className = "suit " + suit.className
+        card.textContent = suit.symbol
+        card.setAttribute("aria-hidden", "true")
+        li.appendChild(card)
 
-        const buttons = make("td")
+        const name = make("span")
+        name.className = "version-name"
+        const title = make("strong")
+        title.innerText = version
+        const state = make("span")
+        state.className = "version-state"
+        state.textContent = "Ready to load"
+        name.append(title, state)
+        li.appendChild(name)
+
+        const actions = make("span")
+        actions.className = "version-actions"
 
         const loadButton = make("button")
+        loadButton.className = "btn btn-blue btn-sm"
         loadButton.onclick = guarded(async function() {
             await loadVersion(version)
         })
         loadButton.innerText = "Load"
         loadButton.setAttribute("aria-label", "Load " + version)
-        buttons.appendChild(loadButton)
+        actions.appendChild(loadButton)
 
         const delButton = make("button")
         delButton.innerText = "Delete"
-        delButton.className = "danger"
+        delButton.className = "btn btn-danger btn-sm"
         delButton.setAttribute("aria-label", "Delete " + version)
         delButton.onclick = guarded(async function() {
-            if (confirm("Delete the version '" + version + "'? Its save data is kept and will come back if you build a version with the same name. Use Save Data → Delete to remove it.")) {
+            if (confirm("Delete the version '" + version + "'? Its save data is kept and will come back if you build a version with the same name. Use Save data → Delete to remove it.")) {
                 await deleteCachedGame(version)
                 if (version === loaded_game_id) {
                     await loadVersion(null)
@@ -78,11 +111,10 @@ async function renderVersionList() {
                 await renderVersionList()
             }
         })
-        buttons.appendChild(delButton)
+        actions.appendChild(delButton)
 
-        tr.appendChild(buttons)
-
-        versionsList.appendChild(tr)
+        li.appendChild(actions)
+        versionsList.appendChild(li)
     }
     highlightLoadedVersion()
 }

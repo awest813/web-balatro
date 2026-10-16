@@ -65,13 +65,61 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
+    const drop_zone = $("dropZone")
+
+    function formatSize(bytes) {
+        return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(bytes / 1024)) + " KB"
+    }
+
+    function updateDropZone() {
+        const file = file_input.files[0]
+        drop_zone.classList.toggle("has-file", !!file)
+        drop_zone.classList.toggle("dimmed", load_vanilla_radio.checked)
+        $("dropTitle").textContent = file ? file.name : "Drop Balatro.exe here"
+        $("dropSub").textContent = file ? formatSize(file.size) + " · click to choose another" : "or click to browse (.exe or .love)"
+    }
+
+    function onSourceChange() {
+        updateDropZone()
+        checkBuildButton()
+    }
+
     file_input.onchange = function() {
         // Choosing a file implies building from it.
         if (file_input.files.length > 0) load_exe_radio.checked = true
-        checkBuildButton()
+        onSourceChange()
     }
-    load_exe_radio.onchange = checkBuildButton
-    load_vanilla_radio.onchange = checkBuildButton
+    load_exe_radio.onchange = onSourceChange
+    load_vanilla_radio.onchange = onSourceChange
+
+    // Drag and drop onto the drop zone.
+    const hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files")
+    let drag_depth = 0
+    drop_zone.addEventListener("dragenter", (event) => {
+        if (!hasFiles(event)) return
+        event.preventDefault()
+        drag_depth++
+        drop_zone.classList.add("dragging")
+    })
+    drop_zone.addEventListener("dragleave", () => {
+        drag_depth = Math.max(0, drag_depth - 1)
+        if (drag_depth == 0) drop_zone.classList.remove("dragging")
+    })
+    drop_zone.addEventListener("drop", (event) => {
+        drag_depth = 0
+        drop_zone.classList.remove("dragging")
+        const files = event.dataTransfer && event.dataTransfer.files
+        if (!files || files.length == 0 || file_input.disabled) return
+        file_input.files = files
+        file_input.onchange()
+    })
+    // Don't let a file dropped next to the zone replace the page.
+    window.addEventListener("dragover", (event) => {
+        if (hasFiles(event)) event.preventDefault()
+    })
+    window.addEventListener("drop", (event) => {
+        if (hasFiles(event)) event.preventDefault()
+    })
 
     build_button.onclick = guarded(async function() {
         build_button.disabled = true
@@ -121,7 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             await renderVersionList()
             await loadVersion(name)
 
-            return "Built '" + name + "'. Click Start Game to play."
+            return "Built '" + name + "'. Click Play to start."
         } finally {
             file_input.disabled = false;
             version_name_input.disabled = false;

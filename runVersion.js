@@ -27,6 +27,7 @@ async function runVersion(version) {
 
     const data = new Uint8Array(await game.arrayBuffer())
 
+    if (window.stopBackground) window.stopBackground()
     document.body.innerHTML = ""
     document.body.classList.remove("busy")
     document.title = "Balatro (" + version + ")"
